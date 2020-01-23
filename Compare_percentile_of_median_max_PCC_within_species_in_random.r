@@ -1,6 +1,5 @@
 setwd('D:\\Pathway_prediction\\20180831\\Within_between_pathways')
 df <- read.table('All_within_between_pcc_FPKM_all.txt_02',head=T,sep='\t',stringsAsFactors=F)
-df <- df[df[,3]!="PWY-5048",]
 new <- df[df[,4]=='within',]
 pathway = unique(new[,3])
 res_max <- c() ### max PCC for each gene in pathways
@@ -46,8 +45,6 @@ for(i in 1:length(gene)){
 	p <- unique(subdat[,3])
 	for(j in 1:length(p)){
 		tem <- subdat[subdat[,3]==p[j],]
-			# pcc_max <- rbind(pcc_max,c(gene[i],p[j],max(tem[,5])))
-			# pcc_median <- rbind(pcc_median,c(gene[i],p[j],median(tem[,5])))
 			pcc_max <- c(pcc_max,max(tem[,5]))
 			pcc_median <- c(pcc_median,median(tem[,5]))
 		}
@@ -60,8 +57,6 @@ dev.off()
 
 ecdf_fun <- function(value_list,value) ecdf(value_list)(value)
 per_PCC <- merge(res_median_median,res_max_median,by.x='V1',by.y='V1')
-# per_PCC <- cbind(per_PCC,ecdf_fun(as.numeric(as.character(pcc_median[,3])),as.numeric(as.character(per_PCC[,2]))))
-# per_PCC <- cbind(per_PCC,ecdf_fun(as.numeric(as.character(pcc_max[,3])),as.numeric(as.character(per_PCC[,3]))))
 per_PCC <- cbind(per_PCC,ecdf_fun(as.numeric(as.character(pcc_median)),as.numeric(as.character(per_PCC[,2]))))
 per_PCC <- cbind(per_PCC,ecdf_fun(as.numeric(as.character(pcc_max)),as.numeric(as.character(per_PCC[,3]))))
 pdf('Median_Max_PCC_and_percentile_within_pathway_20200123.pdf')
