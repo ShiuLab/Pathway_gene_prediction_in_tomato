@@ -32,7 +32,7 @@ for(i in 1:length(pathway)){
 	}
 res_median_median <- res_median_median[order(as.numeric(res_median_median[,2])),]
 
-pcc <- df[df[,4]=='between',]
+pcc <- df[df[,4]=='between',] ### 4888351 in total
 #pcc <- pcc[sample(nrow(pcc),size=100000,replace=FALSE),]
 library(vioplot)
 pdf('Vioplot_random_10000_between_pathway_PCC.pdf')
