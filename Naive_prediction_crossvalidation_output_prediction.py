@@ -44,7 +44,7 @@ for cv_number in range(1,6):
 			P_training[pathway] = []
 		P_training[pathway].append(gene)
 	df = pd.read_csv(path + expression, sep='\t', index_col = 0, header = 0)
-	if expression.startswith('Multiclass_MR'):
+	if expression.startswith('Multiclass'):
 		df = df.iloc[:,1:2172]
 		colname = df.columns.tolist()
 		colname = [c.replace(expression.split('Multiclass_')[1].split('complete.txt')[0],'') for c in colname]
