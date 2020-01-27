@@ -33,7 +33,7 @@ for cv_number in range(1,6):
 	training = open('Pathway_genes_for_5_training_set%s.txt'%cv_number,'r').readlines()
 	D_training = {} #D_training[gene] = pathway
 	P_training = {} #P_training[pathway] = [gene1,gene2,...]
-	for inl in gene_list:
+	for inl in training:
 		gene = inl.split('\t')[1].strip()
 		pathway = inl.split('\t')[0]
 		if gene not in D_training:
