@@ -48,7 +48,10 @@ for p in pathway:
 			for gene2 in P_train[p2]:
 				if gene1!=gene2:
 					value.append(round(expression.loc[gene1,gene2],3))
-			res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.max(value),3))
+			if 'MR' in files:
+				res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.min(value),3))
+			else:
+				res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.max(value),3))
 		out.write(res + '\n')
 				
 for p in pathway:
@@ -58,7 +61,10 @@ for p in pathway:
 			value = []
 			for gene2 in P_train[p2]:
 				value.append(round(expression.loc[gene1,gene2],3))
-			res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.max(value),3))
+			if 'MR' in files:
+				res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.min(value),3))
+			else:
+				res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.max(value),3))
 		out.write(res + '\n')
 					
 for p in P_test.keys():
@@ -68,7 +74,10 @@ for p in P_test.keys():
 			value = []
 			for gene2 in P_train[p2]:
 				value.append(round(expression.loc[gene1,gene2],3))
-			res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.max(value),3))
+			if 'MR' in files:
+				res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.min(value),3))
+			else:
+				res = res + '\t%s\t%s'%(round(np.median(value),3),round(np.max(value),3))
 		out.write(res + '\n')
 
 out.close()		
