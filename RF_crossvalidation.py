@@ -4,11 +4,7 @@ import numpy as np
 from datetime import datetime
 import time
 import ML_function_for_CV as ML
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import RandomizedSearchCV
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.model_selection import cross_val_predict
+from sklearn.ensemble import RandomForestClassifier
 
 def Performance_MC(y, pred, classes):
 	from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
