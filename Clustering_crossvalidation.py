@@ -15,7 +15,7 @@ def Performance_MC(y, pred, classes):
 	df_tem = pd.DataFrame([y,pred]).T
 	df_tem.columns = ['y_true','y_pred']
 	f1 = []
-	for y_list in y.unique():
+	for y_list in classes:
 		P = df_tem[df_tem.y_true==y_list]
 		TP = P[P.y_pred == y_list]
 		FN = P.shape[0] - TP.shape[0]
