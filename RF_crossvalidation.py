@@ -4,7 +4,11 @@ import numpy as np
 from datetime import datetime
 import time
 import ML_function_for_CV as ML
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.model_selection import cross_val_predict
 
 def Performance_MC(y, pred, classes):
 	from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
@@ -14,7 +18,7 @@ def Performance_MC(y, pred, classes):
 	df_tem = pd.concat([y,pred],axis=1)
 	df_tem.columns = ['y_true','y_pred']
 	f1 = []
-	for y_list in y.unique():
+	for y_list in classes:
 		P = df_tem[df_tem.y_true==y_list]
 		TP = P[P.y_pred == y_list]
 		FN = P.shape[0] - TP.shape[0]
@@ -80,7 +84,18 @@ def main():
 			D[inl.split('\t')[0]] = inl.split('\t')[1].strip()
 		short_name = D[DF]
 		
-	# grid search 	
+	df_test = df[df.index.isin(test)]
+	y_test = df_test['Class']
+	X_test = df_test.drop(['Class'], axis=1)
+	df_training = df[df.index.isin(training)]
+	y_training = df_training['Class']
+	X_training = df_training.drop(['Class'], axis=1)
+	# grid search 
+	y = df['Class']
+	classes = y.unique()
+	df_test = df[df.index.isin(test)]
+	y_test = df_test['Class']
+	test_classes = y_test.unique()
 	CV_performance = {}	# CV_performance [max_depth,max_features,n_estimators]=[F1_macro,F1_macro,...]
 	parameters = {'max_depth':[3, 5, 10], 'max_features': [0.1, 0.25, 0.5, 0.75, 'sqrt', 'log2', None], 'n_estimators': [100,500,1000]}
 	for max_depth in parameters['max_depth']:
@@ -90,10 +105,6 @@ def main():
 				for cv_number in range(1,6):
 					if dataset == 'setB':
 						df = pd.read_csv(path+DF+ '_CV_%s_features.txt'%cv_number, sep='\t', index_col = 0)
-					df_test = df[df.index.isin(test)]
-					y_test = df_test['Class']
-					X_test = df_test.drop(['Class'], axis=1)
-					test_classes = y_test.unique()
 					#split genes into traning, validiating, testing subset
 					with open('Genes_for_5_training_set%s.txt'%cv_number) as train_file:
 						train = train_file.read().splitlines()
@@ -105,7 +116,6 @@ def main():
 					X_train = df_train.drop(['Class'], axis=1)
 					y_validation = df_validation['Class']
 					X_validation = df_validation.drop(['Class'], axis=1)
-					classes = y_validation.unique()
 					clf.fit(X_train,y_train)
 					cv_proba = clf.predict_proba(df_validation.drop(['Class'], axis=1))
 					cv_pred = clf.predict(df_validation.drop(['Class'], axis=1))
@@ -151,20 +161,14 @@ def main():
 	results_training = []
 	results_ho = []
 	df_all = df.copy()
-	df_training = df[df.index.isin(training)]
-	df_proba = pd.DataFrame(data=df_all['Class'], index=df_all.index, columns=['Class'])
 	df_proba_training = pd.DataFrame(data=df_training['Class'], index=df_training.index, columns=['Class'])
 	df_proba_test = pd.DataFrame(data=df_test['Class'], index=df_test.index, columns=['Class'])
 	clf = DefineClf_RandomForest(n_estimators,max_depth,max_features)
+	Prediction_training = pd.DataFrame(y_training)
+	Prediction_testing = pd.DataFrame(y_test)
 	for cv_number in range(1,6):
 		if dataset == 'setB':
 			df = pd.read_csv(path+DF+ '_CV_%s_features.txt'%cv_number, sep='\t', index_col = 0)
-		df_test = df[df.index.isin(test)]
-		y_test = df_test['Class']
-		X_test = df_test.drop(['Class'], axis=1)
-		df_training = df[df.index.isin(training)]
-		y_training = df_training['Class']
-		X_training = df_training.drop(['Class'], axis=1)
 		#split genes into traning, validiating, testing subset
 		with open('Genes_for_5_training_set%s.txt'%cv_number) as train_file:
 			train = train_file.read().splitlines()
@@ -176,28 +180,40 @@ def main():
 		X_train = df_train.drop(['Class'], axis=1)
 		y_validation = df_validation['Class']
 		X_validation = df_validation.drop(['Class'], axis=1)
-		classes = y_validation.unique()
-		test_classes = y_test.unique()
 		clf.fit(X_train,y_train)
 		importances = clf.feature_importances_
 		imp[cv_number] = importances
 		
 		proba = clf.predict_proba(df_validation.drop(['Class'], axis=1))
 		pred = clf.predict(df_validation.drop(['Class'], axis=1))
+		pred_va = pd.DataFrame(y_validation)
+		pred_va['Prediction'] = pred
+		if cv_number == 1:
+			Prediction_validation = pred_va
+		else:
+			Prediction_validation = pd.concat([Prediction_validation,pred_va],axis=0)
 		result = Performance_MC(y_validation, pred, classes)
 		
 		training_proba = clf.predict_proba(df_training.drop(['Class'], axis=1))
 		training_pred = clf.predict(df_training.drop(['Class'], axis=1))
+		Prediction_training['Prediction_%s'%cv_number] = training_pred
 		results_training = Performance_MC(y_training, training_pred, classes)
 		
 		ho_proba = clf.predict_proba(df_test.drop(['Class'], axis=1))
 		ho_pred = clf.predict(df_test.drop(['Class'], axis=1))
+		Prediction_testing['Prediction_%s'%cv_number] = ho_pred
 		results_ho = Performance_MC(y_test, ho_pred, test_classes)
 		
 		score_columns = []
 		for clss in classes:
 			score_columns.append("%s_score_%s"%(clss,cv_number))
 		df_sel_scores = pd.DataFrame(data=proba,index=df_validation.index,columns=score_columns)
+		df_proba_col = pd.DataFrame(data=df_validation['Class'], index=df_validation.index, columns=['Class'])
+		df_proba_tem = pd.concat([df_proba_col,df_sel_scores], axis = 1, sort = True)
+		if cv_number==1:
+			df_proba = df_proba_tem
+		else:
+			df_proba = pd.concat([df_proba,df_proba_tem], axis = 0)
 		df_training_scores = pd.DataFrame(data=training_proba,index=df_training.index,columns=score_columns)
 		df_ho_scores = pd.DataFrame(data=ho_proba,index=df_test.index,columns=score_columns)
 		if 'accuracy' in result:
@@ -221,7 +237,6 @@ def main():
 		if 'macro_f1' in results_ho:
 			ho_f1_temp_array = np.insert(arr = results_ho['f1_MC'], obj = 0, values = results_ho['macro_f1'])
 			f1_array_ho = np.append(f1_array_ho, [ho_f1_temp_array], axis=0)
-		df_proba = pd.concat([df_proba,df_sel_scores], axis = 1,sort=True)
 		df_proba_training = pd.concat([df_proba_training,df_training_scores], axis = 1,sort=True)
 		df_proba_test = pd.concat([df_proba_test,df_ho_scores], axis = 1,sort=True)
 
@@ -377,6 +392,12 @@ def main():
 		imp = imp.sort_values('mean_imp', 0, ascending = False)
 		imp_out = save_path + short_name + "_%s_imp"%dataset
 		imp['mean_imp'].to_csv(imp_out, sep = "\t", index=True)
+		
+		Prediction_validation.to_csv(save_path + short_name + "_RF_%s_validation_prediction.txt"%dataset,index=True, header=True,sep="\t")
+		Prediction_training.to_csv(save_path + short_name + "_RF_%s_training_prediction.txt"%dataset,index=True, header=True,sep="\t")
+		Prediction_testing.to_csv(save_path + short_name + "_RF_%s_testing_prediction.txt"%dataset,index=True, header=True,sep="\t")
+		
+
 	
 
 if __name__ == '__main__':
