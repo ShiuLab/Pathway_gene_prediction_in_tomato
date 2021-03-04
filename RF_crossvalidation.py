@@ -1,14 +1,19 @@
-import sys, os
+import sys,os,argparse
 import pandas as pd
 import numpy as np
 from datetime import datetime
 import time
-import ML_function_for_CV as ML
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import cross_val_predict
+
+def warn(*args, **kwargs):
+	pass
+import warnings
+warnings.warn = warn
+
 
 def Performance_MC(y, pred, classes):
 	from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
@@ -50,19 +55,27 @@ def Fmeasure(TP,FP,FN):
 
 
 def main():
-	for i in range (1,len(sys.argv),2):
-		if sys.argv[i].lower() == "-df_short_name":
-			DF = sys.argv[i+1]
-		if sys.argv[i].lower() == "-path": ### path to feature files
-			path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-save_path": ### path to feature files
-			save_path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-test_gene_list": ### path to feature files
-			TEST = sys.argv[i+1]
-		if sys.argv[i].lower() == "-train_gene_list": ### path to feature files
-			TRAIN = sys.argv[i+1]
-		if sys.argv[i].lower() == "-dataset": ### path to feature files
-			dataset = sys.argv[i+1]
+	parser = argparse.ArgumentParser(description='This code is for building the RF models. ')
+	# Required
+	req_group = parser.add_argument_group(title='REQUIRED INPUT')
+	req_group.add_argument('-df_short_name', help='feature matrix, for Set B, use the short name, for Set A, use the full name of the expression matrix', required=True)
+	req_group.add_argument('-path', help='path to the feature matrix', required=True)
+	req_group.add_argument('-save_path', help='path to save the outputs', required=True)
+	req_group.add_argument('-test_gene_list', help='Genes_for_testing.txt', required=True)
+	req_group.add_argument('-train_gene_list', help='Genes_for_training.txt', required=True)
+	req_group.add_argument('-dataset', help='setA or setB', required=True)
+
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(0)
+	args = parser.parse_args()	
+
+	DF = args.df_short_name
+	path = args.path
+	save_path = args.save_path
+	TEST = args.test_gene_list
+	TRAIN = args.train_gene_list
+	dataset = args.dataset
 		
 	with open(TEST) as test_file:
 		test = test_file.read().splitlines()
@@ -150,21 +163,16 @@ def main():
 	conf_matrices = pd.DataFrame(columns = np.insert(arr = classes.astype(np.str), obj = 0, values = 'Class'))
 	imp = pd.DataFrame(index = list(df.drop(['Class'], axis=1)))
 	accuracies = []
-	accuracies_training = []
 	accuracies_ho = []
 	f1_array = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 	accuracies_ho = []
-	f1_array_training = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 	accuracies_ho = []
 	f1_array_ho = np.array([np.insert(arr = test_classes.astype(np.str), obj = 0, values = 'M')])
 	results = []
-	results_training = []
 	results_ho = []
 	df_all = df.copy()
-	df_proba_training = pd.DataFrame(data=df_training['Class'], index=df_training.index, columns=['Class'])
 	df_proba_test = pd.DataFrame(data=df_test['Class'], index=df_test.index, columns=['Class'])
 	clf = DefineClf_RandomForest(n_estimators,max_depth,max_features)
-	Prediction_training = pd.DataFrame(y_training)
 	Prediction_testing = pd.DataFrame(y_test)
 	for cv_number in range(1,6):
 		if dataset == 'setB':
@@ -194,11 +202,6 @@ def main():
 			Prediction_validation = pd.concat([Prediction_validation,pred_va],axis=0)
 		result = Performance_MC(y_validation, pred, classes)
 		
-		training_proba = clf.predict_proba(df_training.drop(['Class'], axis=1))
-		training_pred = clf.predict(df_training.drop(['Class'], axis=1))
-		Prediction_training['Prediction_%s'%cv_number] = training_pred
-		results_training = Performance_MC(y_training, training_pred, classes)
-		
 		ho_proba = clf.predict_proba(df_test.drop(['Class'], axis=1))
 		ho_pred = clf.predict(df_test.drop(['Class'], axis=1))
 		Prediction_testing['Prediction_%s'%cv_number] = ho_pred
@@ -214,7 +217,6 @@ def main():
 			df_proba = df_proba_tem
 		else:
 			df_proba = pd.concat([df_proba,df_proba_tem], axis = 0)
-		df_training_scores = pd.DataFrame(data=training_proba,index=df_training.index,columns=score_columns)
 		df_ho_scores = pd.DataFrame(data=ho_proba,index=df_test.index,columns=score_columns)
 		if 'accuracy' in result:
 			accuracies.append(result['accuracy'])
@@ -226,18 +228,11 @@ def main():
 			cmatrix.insert(0,"Class",classes,True)
 			conf_matrices = pd.concat([conf_matrices, cmatrix],axis=0)
 
-		if 'accuracy' in results_training:
-			accuracies_training.append(results_training['accuracy'])
-		if 'macro_f1' in results_training:
-			training_f1_temp_array = np.insert(arr = results_training['f1_MC'], obj = 0, values = results_training['macro_f1'])
-			f1_array_training= np.append(f1_array_training, [training_f1_temp_array], axis=0)
-		
 		if 'accuracy' in results_ho:
 			accuracies_ho.append(results_ho['accuracy'])
 		if 'macro_f1' in results_ho:
 			ho_f1_temp_array = np.insert(arr = results_ho['f1_MC'], obj = 0, values = results_ho['macro_f1'])
 			f1_array_ho = np.append(f1_array_ho, [ho_f1_temp_array], axis=0)
-		df_proba_training = pd.concat([df_proba_training,df_training_scores], axis = 1,sort=True)
 		df_proba_test = pd.concat([df_proba_test,df_ho_scores], axis = 1,sort=True)
 
 ###### save the Output ######
@@ -248,9 +243,6 @@ def main():
 		for class_nm in reversed(classes): # get std
 			class_proba_cols = [c for c in df_proba.columns if c.startswith(class_nm+'_score_')]
 			df_proba.insert(loc=1, column = class_nm+'_score_stdev', value = df_proba[class_proba_cols].std(axis=1))
-			
-			class_proba_cols_training = [c for c in df_proba_training.columns if c.startswith(class_nm+'_score_')]
-			df_proba_training.insert(loc=1, column = class_nm+'_score_stdev', value = df_proba_training[class_proba_cols_training].std(axis=1))
 			
 			class_proba_cols_test = [c for c in df_proba_test.columns if c.startswith(class_nm+'_score_')]
 			df_proba_test.insert(loc=1, column = class_nm+'_score_stdev', value = df_proba_test[class_proba_cols_test].std(axis=1))
@@ -263,9 +255,6 @@ def main():
 			class_proba_cols = [c for c in df_proba.columns if c.startswith(class_nm+'_score_')]
 			df_proba.insert(loc=1, column = class_nm+'_score_Median', value = df_proba[class_proba_cols].median(axis=1))
 			
-			class_proba_cols_training = [c for c in df_proba_training.columns if c.startswith(class_nm+'_score_')]
-			df_proba_training.insert(loc=1, column = class_nm+'_score_Median', value = df_proba_training[class_proba_cols_training].median(axis=1))
-			
 			class_proba_cols_test = [c for c in df_proba_test.columns if c.startswith(class_nm+'_score_')]
 			df_proba_test.insert(loc=1, column = class_nm+'_score_Median', value = df_proba_test[class_proba_cols_test].median(axis=1))
 			
@@ -273,9 +262,6 @@ def main():
 		# Find the max mc_score and set to Prediction column (remove the _score_Median string)
 		df_proba.insert(loc=1, column = 'Prediction', value = df_proba[mc_score_columns].idxmax(axis=1))
 		df_proba['Prediction'] = df_proba.Prediction.str.replace('_score_Median','')
-
-		df_proba_training.insert(loc=1, column = 'Prediction', value = df_proba_training[mc_score_columns].idxmax(axis=1))
-		df_proba_training['Prediction'] = df_proba_training.Prediction.str.replace('_score_Median','')
 
 		df_proba_test.insert(loc=1, column = 'Prediction', value = df_proba_test[mc_score_columns].idxmax(axis=1))
 		df_proba_test['Prediction'] = df_proba_test.Prediction.str.replace('_score_Median','')
@@ -302,11 +288,6 @@ def main():
 		out_scores.write("#ID\t"+pd.DataFrame.to_csv(df_proba,sep="\t").strip()+"\n")
 		out_scores.close()
 		
-		scores_file = save_path + short_name + "_RF_%s_training_scores.txt"%dataset
-		out_scores = open(scores_file,"w")
-		out_scores.write("#ID\t"+pd.DataFrame.to_csv(df_proba_training,sep="\t").strip()+"\n")
-		out_scores.close()
-		
 		scores_file = save_path + short_name + "_RF_%s_test_scores.txt"%dataset
 		out_scores = open(scores_file,"w")
 		out_scores.write("#ID\t"+pd.DataFrame.to_csv(df_proba_test,sep="\t").strip()+"\n")
@@ -331,19 +312,7 @@ def main():
 			conf_matrices[class_name] = conf_matrices[class_name].astype(float)
 		cm_mean = conf_matrices.groupby('Class').mean()
 
-		# Unpack results for prediction on validation
-		f1_training = pd.DataFrame(f1_array_training)
-		f1_training.columns = f1_training.iloc[0]
-		f1_training = f1_training[1:]
-		f1_training.columns = [str(col) + '_F1' for col in f1_training.columns]
-		f1_training = f1_training.astype(float)	
-		AC_training = np.mean(accuracies_training)
-		AC_std_training = np.std(accuracies_training)
-		MacF1_training = f1_training['M_F1'].mean()
-		MacF1_std_training = f1_training['M_F1'].std()
-		print("\nML Results from Hold Out Validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
-
-		# Unpack results from hold out
+		# Unpack results for test
 		f1_ho = pd.DataFrame(f1_array_ho)
 		f1_ho.columns = f1_ho.iloc[0]
 		f1_ho = f1_ho[1:]
@@ -367,14 +336,7 @@ def main():
 			if 'M_F1' not in cla:
 				out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1[cla]), np.std(f1[cla])))
 		
-		# Add results for prediction on training set
-		out.write('\n\nResults for prediction on training:\n')
-		out.write('\nMetric\tMean\tSD\nAccuracy\t%05f\t%05f\nF1_macro\t%05f\t%05f\n' % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
-		for cla in f1.columns:
-			if 'M_F1' not in cla:
-				out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1_training[cla]), np.std(f1_training[cla])))
-		
-		# Add results from hold out
+		# Add results for test
 		out.write('\n\nResults from the hold out set:\n')
 		out.write('HO Accuracy\t%05f +/-%05f\nHO F1_macro\t%05f +/-%05f\n' % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 		for cla in f1_ho.columns:
@@ -394,7 +356,6 @@ def main():
 		imp['mean_imp'].to_csv(imp_out, sep = "\t", index=True)
 		
 		Prediction_validation.to_csv(save_path + short_name + "_RF_%s_validation_prediction.txt"%dataset,index=True, header=True,sep="\t")
-		Prediction_training.to_csv(save_path + short_name + "_RF_%s_training_prediction.txt"%dataset,index=True, header=True,sep="\t")
 		Prediction_testing.to_csv(save_path + short_name + "_RF_%s_testing_prediction.txt"%dataset,index=True, header=True,sep="\t")
 		
 

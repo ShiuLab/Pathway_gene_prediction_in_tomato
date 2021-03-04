@@ -1,7 +1,7 @@
 import sklearn
 import pandas as pd
 import numpy as np
-import sys,os
+import sys,os,argparse
 from sklearn.cluster import KMeans
 from sklearn.cluster import AffinityPropagation
 from sklearn.cluster import Birch
@@ -10,6 +10,11 @@ import scipy
 import scipy.stats as stats
 import math
 import joblib
+
+def warn(*args, **kwargs):
+	pass
+import warnings
+warnings.warn = warn
 
 def Performance_MC(y, pred, classes):
 	from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
@@ -73,22 +78,30 @@ def Enrichment_clustering(cluster_result,n_clusters):
 	return(Enrichment_C_P)
 
 def main():
-	for i in range (1,len(sys.argv),2):
-		if sys.argv[i].lower() == "-df":
-			DF = sys.argv[i+1]
-		if sys.argv[i].lower() == "-path": ### path to feature files
-			path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-save_path": 
-			save_path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-clustering_method": 
-			clustering_method = sys.argv[i+1]
-		if sys.argv[i].lower() == "-test_gene_list":
-			TEST = sys.argv[i+1]
-		if sys.argv[i].lower() == "-train_gene_list": 
-			TRAIN = sys.argv[i+1]
-		if sys.argv[i].lower() == "-dataset": 
-			dataset = sys.argv[i+1]
-		
+	parser = argparse.ArgumentParser(description='This code contains the RF model building. ')
+	# Required
+	req_group = parser.add_argument_group(title='REQUIRED INPUT')
+	req_group.add_argument('-df_short_name', help='feature matrix, for Set B, use the short name, for Set A, use the full name of the expression matrix', required=True)
+	req_group.add_argument('-path', help='path to the feature matrix', required=True)
+	req_group.add_argument('-save_path', help='path to save the outputs', required=True)
+	req_group.add_argument('-clustering_method', help='kmean, affinity, birch, or meanshift', required=True)
+	req_group.add_argument('-test_gene_list', help='Genes_for_testing.txt', required=True)
+	req_group.add_argument('-train_gene_list', help='Genes_for_training.txt', required=True)
+	req_group.add_argument('-dataset', help='setA or setB', required=True)
+
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(0)
+	args = parser.parse_args()	
+
+	DF = args.df_short_name
+	path = args.path
+	save_path = args.save_path
+	clustering_method = args.clustering_method
+	TEST = args.test_gene_list
+	TRAIN = args.train_gene_list
+	dataset = args.dataset
+
 	with open(TEST) as test_file:
 		test = test_file.read().splitlines()
 
@@ -120,10 +133,8 @@ def main():
 	if clustering_method.lower() == 'kmean': 
 		for n_clusters in [5,10,25,50,85,100,200,300,400,500]:
 			accuracies = []
-			accuracies_training = []
 			accuracies_ho = []
 			f1_array = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
-			f1_array_training = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 			f1_array_ho = np.array([np.insert(arr = test_classes.astype(np.str), obj = 0, values = 'M')])
 			for cv_number in range(1,6):
 				if dataset == 'setB':
@@ -141,7 +152,6 @@ def main():
 				mat = X_train.as_matrix()  # Convert DataFrame to matrix
 				mat_validation = X_validation.as_matrix()
 				mat_test = X_test.as_matrix()
-				mat_training = X_training.as_matrix()
 				clu = sklearn.cluster.KMeans(n_clusters=n_clusters,n_init=3, n_jobs=5,max_iter=500) # Using sklearn
 				clu.fit(mat)
 				train_labels = clu.labels_   # Get cluster assignment labels
@@ -174,28 +184,6 @@ def main():
 				if 'macro_f1' in result:
 					f1_temp_array = np.insert(arr = result['f1_MC'], obj = 0, values = result['macro_f1'])
 					f1_array = np.append(f1_array, [f1_temp_array], axis=0)
-
-				training_labels = clu.predict(mat_training)
-				training_tem = pd.DataFrame([training_labels]).T
-				training_tem.index = X_training.index
-				training_tem.columns = ['Cluster']
-				training_res = pd.concat([y_training,training_tem],axis=1)
-				for i in range(0,training_res.shape[0]):
-					try:
-						training_res.iloc[i,1] = E_C_P[training_res.iloc[i,1]]
-					except:
-						training_res.iloc[i,1] = '%s'%training_res.iloc[i,1]
-						print('%s was not enriched for any pathway'%training_res.iloc[i,1])
-				if cv_number==1:
-					predicted_training = training_res.copy()
-				else:
-					predicted_training = pd.concat([predicted_training,training_res.Cluster],axis=1)
-				result_training = Performance_MC(training_res.Class, training_res.Cluster, classes)
-				if 'accuracy' in result_training:
-					accuracies_training.append(result_training['accuracy'])
-				if 'macro_f1' in result_training:
-					f1_temp_array_training = np.insert(arr = result_training['f1_MC'], obj = 0, values = result_training['macro_f1'])
-					f1_array_training = np.append(f1_array_training, [f1_temp_array_training], axis=0)
 
 				test_labels = clu.predict(mat_test)
 				test_tem = pd.DataFrame([test_labels]).T
@@ -233,13 +221,12 @@ def main():
 
 			print('Save the predicted values:')
 			predicted.to_csv(save_path+short_name + "_Kmean_%s_%s_validation_prediction.txt"%(dataset,n_clusters),index=True, header=True,sep="\t")
-			predicted_training.to_csv(save_path+short_name + "_Kmean_%s_%s_training_prediction.txt"%(dataset,n_clusters),index=True, header=True,sep="\t")
 			predicted_test.to_csv(save_path+short_name + "_Kmean_%s_%s_test_prediction.txt"%(dataset,n_clusters),index=True, header=True,sep="\t")
 
-			print("\nCluster Results: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (
+			print("\nCluster results for cross validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (
 			AC, AC_std, MacF1, MacF1_std))
 			
-			# Unpack results from hold out
+			# Unpack results for test
 			f1_ho = pd.DataFrame(f1_array_ho)
 			f1_ho.columns = f1_ho.iloc[0]
 			f1_ho = f1_ho[1:]
@@ -249,19 +236,7 @@ def main():
 			AC_std_ho = np.std(accuracies_ho)
 			MacF1_ho = f1_ho['M_F1'].mean()
 			MacF1_std_ho = f1_ho['M_F1'].std()
-			print("\nCluster Results from Hold Out Validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
-
-			# Unpack results from training application
-			f1_training = pd.DataFrame(f1_array_training)
-			f1_training.columns = f1_training.iloc[0]
-			f1_training = f1_training[1:]
-			f1_training.columns = [str(col) + '_F1' for col in f1_training.columns]
-			f1_training = f1_training.astype(float)	
-			AC_training = np.mean(accuracies_training)
-			AC_std_training = np.std(accuracies_training)
-			MacF1_training = f1_training['M_F1'].mean()
-			MacF1_std_training = f1_training['M_F1'].std()
-			print("\nCluster Results from training application: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
+			print("\nCluster results for test: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 
 			# Save detailed results file 
 			n_features = df.shape[1] - 1 
@@ -276,15 +251,8 @@ def main():
 				if 'M_F1' not in cla:
 					out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1[cla]), np.std(f1[cla])))
 			
-			out.write('\n\nResults for prediction on training:\n')
-			out.write('Metric\tMean\tSD\nAccuracy\t%05f\t%05f\nF1_macro\t%05f\t%05f\n' % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
-			for cla in f1_training.columns:
-				if 'M_F1' not in cla:
-					out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1_training[cla]), np.std(f1_training[cla])))
-			
-			
-			# Add results from hold out
-			out.write('\n\nResults from the hold out set:\n')
+			# Add results for test
+			out.write('\n\nResults for the test set:\n')
 			out.write('HO Accuracy\t%05f +/-%05f\nHO F1_macro\t%05f +/-%05f\n' % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 			for cla in f1_ho.columns:
 				if 'M_F1' not in cla:
@@ -295,11 +263,9 @@ def main():
 	if clustering_method.lower() == 'affinity': 
 		for damping in [0.5,0.6,0.7,0.8,0.9,0.99]:
 			accuracies = []
-			accuracies_training = []
 			accuracies_ho = []
 			f1_array = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 			accuracies_ho = []
-			f1_array_training = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 			f1_array_ho = np.array([np.insert(arr = test_classes.astype(np.str), obj = 0, values = 'M')])
 			for cv_number in range(1,6):
 				if dataset == 'setB':
@@ -317,7 +283,6 @@ def main():
 				mat = X_train.as_matrix()  # Convert DataFrame to matrix
 				mat_validation = X_validation.as_matrix()
 				mat_test = X_test.as_matrix()
-				mat_training = X_training.as_matrix()
 				clu = AffinityPropagation(damping = damping)
 				clu.fit(mat)
 				train_labels = clu.labels_   # Get cluster assignment labels
@@ -351,28 +316,6 @@ def main():
 					f1_temp_array = np.insert(arr = result['f1_MC'], obj = 0, values = result['macro_f1'])
 					f1_array = np.append(f1_array, [f1_temp_array], axis=0)
 
-				training_labels = clu.predict(mat_training)
-				training_tem = pd.DataFrame([training_labels]).T
-				training_tem.index = X_training.index
-				training_tem.columns = ['Cluster']
-				training_res = pd.concat([y_training,training_tem],axis=1)
-				for i in range(0,training_res.shape[0]):
-					try:
-						training_res.iloc[i,1] = E_C_P[training_res.iloc[i,1]]
-					except:
-						training_res.iloc[i,1] = '%s'%training_res.iloc[i,1]
-						print('%s was not enriched for any pathway'%training_res.iloc[i,1])
-				if cv_number==1:
-					predicted_training = training_res.copy()
-				else:
-					predicted_training = pd.concat([predicted_training,training_res.Cluster],axis=1)
-				result_training = Performance_MC(training_res.Class, training_res.Cluster, classes)
-				if 'accuracy' in result_training:
-					accuracies_training.append(result_training['accuracy'])
-				if 'macro_f1' in result_training:
-					f1_temp_array_training = np.insert(arr = result_training['f1_MC'], obj = 0, values = result_training['macro_f1'])
-					f1_array_training = np.append(f1_array_training, [f1_temp_array_training], axis=0)
-				
 				test_labels = clu.predict(mat_test)
 				test_tem = pd.DataFrame([test_labels]).T
 				test_tem.index = X_test.index
@@ -409,13 +352,12 @@ def main():
 
 			print('Save the predicted values:')
 			predicted.to_csv(save_path+short_name + "_AffinityPropagation_%s_%s_%s_validation_prediction.txt"%(dataset,damping,n_clusters),index=True, header=True,sep="\t")
-			predicted_training.to_csv(save_path+short_name + "_AffinityPropagation_%s_%s_%s_training_prediction.txt"%(dataset,damping,n_clusters),index=True, header=True,sep="\t")
 			predicted_test.to_csv(save_path+short_name + "_AffinityPropagation_%s_%s_%s_test_prediction.txt"%(dataset,damping,n_clusters),index=True, header=True,sep="\t")
 
-			print("\nCluster Results: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (
+			print("\nCluster results for cross validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (
 			AC, AC_std, MacF1, MacF1_std))
 			
-			# Unpack results from hold out
+			# Unpack results for test
 			f1_ho = pd.DataFrame(f1_array_ho)
 			f1_ho.columns = f1_ho.iloc[0]
 			f1_ho = f1_ho[1:]
@@ -425,19 +367,8 @@ def main():
 			AC_std_ho = np.std(accuracies_ho)
 			MacF1_ho = f1_ho['M_F1'].mean()
 			MacF1_std_ho = f1_ho['M_F1'].std()
-			print("\nCluster Results from Hold Out Validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
+			print("\nCluster results for test: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 
-			# Unpack results from training application
-			f1_training = pd.DataFrame(f1_array_training)
-			f1_training.columns = f1_training.iloc[0]
-			f1_training = f1_training[1:]
-			f1_training.columns = [str(col) + '_F1' for col in f1_training.columns]
-			f1_training = f1_training.astype(float)	
-			AC_training = np.mean(accuracies_training)
-			AC_std_training = np.std(accuracies_training)
-			MacF1_training = f1_training['M_F1'].mean()
-			MacF1_std_training = f1_training['M_F1'].std()
-			print("\nCluster Results from training application: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
 
 			# Save detailed results file 
 			n_features = df.shape[1] - 1 
@@ -452,15 +383,8 @@ def main():
 				if 'M_F1' not in cla:
 					out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1[cla]), np.std(f1[cla])))
 			
-			out.write('\n\nResults for prediction on training:\n')
-			out.write('Metric\tMean\tSD\nAccuracy\t%05f\t%05f\nF1_macro\t%05f\t%05f\n' % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
-			for cla in f1_training.columns:
-				if 'M_F1' not in cla:
-					out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1_training[cla]), np.std(f1_training[cla])))
-			
-			
-			# Add results from hold out
-			out.write('\n\nResults from the hold out set:\n')
+			# Add results for test
+			out.write('\n\nResults for test set:\n')
 			out.write('HO Accuracy\t%05f +/-%05f\nHO F1_macro\t%05f +/-%05f\n' % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 			for cla in f1_ho.columns:
 				if 'M_F1' not in cla:
@@ -471,11 +395,9 @@ def main():
 	if clustering_method.lower() == 'birch': 
 		for n_clusters in [5,10,25,50,85,100,200,300,400,500]:
 			accuracies = []
-			accuracies_training = []
 			accuracies_ho = []
 			f1_array = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 			accuracies_ho = []
-			f1_array_training = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 			f1_array_ho = np.array([np.insert(arr = test_classes.astype(np.str), obj = 0, values = 'M')])
 			for cv_number in range(1,6):
 				if dataset == 'setB':
@@ -493,7 +415,6 @@ def main():
 				mat = X_train.as_matrix()  # Convert DataFrame to matrix
 				mat_validation = X_validation.as_matrix()
 				mat_test = X_test.as_matrix()
-				mat_training = X_training.as_matrix()
 				clu = Birch(n_clusters=n_clusters)
 				clu.fit(mat)
 				train_labels = clu.labels_   # Get cluster assignment labels
@@ -526,28 +447,6 @@ def main():
 				if 'macro_f1' in result:
 					f1_temp_array = np.insert(arr = result['f1_MC'], obj = 0, values = result['macro_f1'])
 					f1_array = np.append(f1_array, [f1_temp_array], axis=0)
-
-				training_labels = clu.predict(mat_training)
-				training_tem = pd.DataFrame([training_labels]).T
-				training_tem.index = X_training.index
-				training_tem.columns = ['Cluster']
-				training_res = pd.concat([y_training,training_tem],axis=1)
-				for i in range(0,training_res.shape[0]):
-					try:
-						training_res.iloc[i,1] = E_C_P[training_res.iloc[i,1]]
-					except:
-						training_res.iloc[i,1] = '%s'%training_res.iloc[i,1]
-						print('%s was not enriched for any pathway'%training_res.iloc[i,1])
-				if cv_number==1:
-					predicted_training = training_res.copy()
-				else:
-					predicted_training = pd.concat([predicted_training,training_res.Cluster],axis=1)
-				result_training = Performance_MC(training_res.Class, training_res.Cluster, classes)
-				if 'accuracy' in result_training:
-					accuracies_training.append(result_training['accuracy'])
-				if 'macro_f1' in result_training:
-					f1_temp_array_training = np.insert(arr = result_training['f1_MC'], obj = 0, values = result_training['macro_f1'])
-					f1_array_training = np.append(f1_array_training, [f1_temp_array_training], axis=0)
 				
 				test_labels = clu.predict(mat_test)
 				test_tem = pd.DataFrame([test_labels]).T
@@ -585,12 +484,11 @@ def main():
 
 			print('Save the predicted values:')
 			predicted.to_csv(save_path+short_name + "_Birch_%s_%s_validation_prediction.txt"%(dataset,n_clusters),index=True, header=True,sep="\t")
-			predicted_training.to_csv(save_path+short_name + "_Birch_%s_%s_training_prediction.txt"%(dataset,n_clusters),index=True, header=True,sep="\t")
 			predicted_test.to_csv(save_path+short_name + "_Birch_%s_%s_test_prediction.txt"%(dataset,n_clusters),index=True, header=True,sep="\t")
-			print("\nCluster Results: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (
+			print("\nCluster results for cross validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (
 			AC, AC_std, MacF1, MacF1_std))
 			
-			# Unpack results from hold out
+			# Unpack results for test
 			f1_ho = pd.DataFrame(f1_array_ho)
 			f1_ho.columns = f1_ho.iloc[0]
 			f1_ho = f1_ho[1:]
@@ -600,19 +498,7 @@ def main():
 			AC_std_ho = np.std(accuracies_ho)
 			MacF1_ho = f1_ho['M_F1'].mean()
 			MacF1_std_ho = f1_ho['M_F1'].std()
-			print("\nCluster Results from Hold Out Validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
-
-			# Unpack results from training application
-			f1_training = pd.DataFrame(f1_array_training)
-			f1_training.columns = f1_training.iloc[0]
-			f1_training = f1_training[1:]
-			f1_training.columns = [str(col) + '_F1' for col in f1_training.columns]
-			f1_training = f1_training.astype(float)	
-			AC_training = np.mean(accuracies_training)
-			AC_std_training = np.std(accuracies_training)
-			MacF1_training = f1_training['M_F1'].mean()
-			MacF1_std_training = f1_training['M_F1'].std()
-			print("\nCluster Results from training application: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
+			print("\nCluster Results for test: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 
 			# Save detailed results file 
 			n_features = df.shape[1] - 1 
@@ -623,16 +509,9 @@ def main():
 			for cla in f1.columns:
 				if 'M_F1' not in cla:
 					out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1[cla]), np.std(f1[cla])))
-			
-			out.write('\n\nResults for prediction on training:\n')
-			out.write('Metric\tMean\tSD\nAccuracy\t%05f\t%05f\nF1_macro\t%05f\t%05f\n' % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
-			for cla in f1_training.columns:
-				if 'M_F1' not in cla:
-					out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1_training[cla]), np.std(f1_training[cla])))
-			
-			
-			# Add results from hold out
-			out.write('\n\nResults from the hold out set:\n')
+		
+			# Add results for test
+			out.write('\n\nResults for test set:\n')
 			out.write('HO Accuracy\t%05f +/-%05f\nHO F1_macro\t%05f +/-%05f\n' % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 			for cla in f1_ho.columns:
 				if 'M_F1' not in cla:
@@ -643,11 +522,9 @@ def main():
 	if clustering_method.lower() == 'meanshift': 
 		for bandwidth in [0.01,0.05,0.1,0.5,1]:
 			accuracies = []
-			accuracies_training = []
 			accuracies_ho = []
 			f1_array = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 			accuracies_ho = []
-			f1_array_training = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 			f1_array_ho = np.array([np.insert(arr = test_classes.astype(np.str), obj = 0, values = 'M')])
 			for cv_number in range(1,6):
 				if dataset == 'setB':
@@ -665,7 +542,6 @@ def main():
 				mat = X_train.as_matrix()  # Convert DataFrame to matrix
 				mat_validation = X_validation.as_matrix()
 				mat_test = X_test.as_matrix()
-				mat_training = X_training.as_matrix()
 				clu = MeanShift(bandwidth=bandwidth, cluster_all=True) # cluster_all=True forces the assignment of all instance. if cluster_all=False, orphans are given cluster label -1
 				clu.fit(mat)
 				train_labels = clu.labels_   # Get cluster assignment labels
@@ -699,28 +575,6 @@ def main():
 					f1_temp_array = np.insert(arr = result['f1_MC'], obj = 0, values = result['macro_f1'])
 					f1_array = np.append(f1_array, [f1_temp_array], axis=0)
 
-				training_labels = clu.predict(mat_training)
-				training_tem = pd.DataFrame([training_labels]).T
-				training_tem.index = X_training.index
-				training_tem.columns = ['Cluster']
-				training_res = pd.concat([y_training,training_tem],axis=1)
-				for i in range(0,training_res.shape[0]):
-					try:
-						training_res.iloc[i,1] = E_C_P[training_res.iloc[i,1]]
-					except:
-						training_res.iloc[i,1] = '%s'%training_res.iloc[i,1]
-						print('%s was not enriched for any pathway'%training_res.iloc[i,1])
-				if cv_number==1:
-					predicted_training = training_res.copy()
-				else:
-					predicted_training = pd.concat([predicted_training,training_res.Cluster],axis=1)
-				result_training = Performance_MC(training_res.Class, training_res.Cluster, classes)
-				if 'accuracy' in result_training:
-					accuracies_training.append(result_training['accuracy'])
-				if 'macro_f1' in result_training:
-					f1_temp_array_training = np.insert(arr = result_training['f1_MC'], obj = 0, values = result_training['macro_f1'])
-					f1_array_training = np.append(f1_array_training, [f1_temp_array_training], axis=0)
-				
 				test_labels = clu.predict(mat_test)
 				test_tem = pd.DataFrame([test_labels]).T
 				test_tem.index = X_test.index
@@ -757,12 +611,11 @@ def main():
 
 			print('Save the predicted values:')
 			predicted.to_csv(save_path+short_name + "_MeanShift_%s_%s_validation_prediction.txt"%(dataset,bandwidth),index=True, header=True,sep="\t")
-			predicted_training.to_csv(save_path+short_name + "_MeanShift_%s_%s_training_prediction.txt"%(dataset,bandwidth),index=True, header=True,sep="\t")
 			predicted_test.to_csv(save_path+short_name + "_MeanShift_%s_%s_test_prediction.txt"%(dataset,bandwidth),index=True, header=True,sep="\t")
-			print("\nCluster Results: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (
+			print("\nCluster results for cross validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (
 			AC, AC_std, MacF1, MacF1_std))
 			
-			# Unpack results from hold out
+			# Unpack results for test
 			f1_ho = pd.DataFrame(f1_array_ho)
 			f1_ho.columns = f1_ho.iloc[0]
 			f1_ho = f1_ho[1:]
@@ -772,19 +625,7 @@ def main():
 			AC_std_ho = np.std(accuracies_ho)
 			MacF1_ho = f1_ho['M_F1'].mean()
 			MacF1_std_ho = f1_ho['M_F1'].std()
-			print("\nCluster Results from Hold Out Validation: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
-
-			# Unpack results from training application
-			f1_training = pd.DataFrame(f1_array_training)
-			f1_training.columns = f1_training.iloc[0]
-			f1_training = f1_training[1:]
-			f1_training.columns = [str(col) + '_F1' for col in f1_training.columns]
-			f1_training = f1_training.astype(float)	
-			AC_training = np.mean(accuracies_training)
-			AC_std_training = np.std(accuracies_training)
-			MacF1_training = f1_training['M_F1'].mean()
-			MacF1_std_training = f1_training['M_F1'].std()
-			print("\nCluster Results from training application: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
+			print("\nCluster results for test: \nAccuracy: %03f (+/- stdev %03f)\nF1 (macro): %03f (+/- stdev %03f)\n" % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 
 			# Save detailed results file 
 			n_features = df.shape[1] - 1 
@@ -796,15 +637,8 @@ def main():
 				if 'M_F1' not in cla:
 					out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1[cla]), np.std(f1[cla])))
 			
-			out.write('\n\nResults for prediction on training:\n')
-			out.write('Metric\tMean\tSD\nAccuracy\t%05f\t%05f\nF1_macro\t%05f\t%05f\n' % (AC_training, AC_std_training, MacF1_training, MacF1_std_training))
-			for cla in f1_training.columns:
-				if 'M_F1' not in cla:
-					out.write('%s\t%05f\t%05f\n' % (cla, np.mean(f1_training[cla]), np.std(f1_training[cla])))
-			
-			
-			# Add results from hold out
-			out.write('\n\nResults from the hold out set:\n')
+			# Add results for test
+			out.write('\n\nResults for test set:\n')
 			out.write('HO Accuracy\t%05f +/-%05f\nHO F1_macro\t%05f +/-%05f\n' % (AC_ho, AC_std_ho, MacF1_ho, MacF1_std_ho))
 			for cla in f1_ho.columns:
 				if 'M_F1' not in cla:

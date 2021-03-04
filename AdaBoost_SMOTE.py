@@ -1,9 +1,15 @@
-import sys, os
+import sys,os,argparse
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from imblearn.over_sampling import SMOTE
 import joblib
+
+def warn(*args, **kwargs):
+	pass
+import warnings
+warnings.warn = warn
+
 
 def Performance_MC(y, pred, classes):
 	from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
@@ -44,32 +50,40 @@ def Fmeasure(TP,FP,FN):
 
 
 def main():
-	for i in range (1,len(sys.argv),2):
-		if sys.argv[i].lower() == "-df_short_name":
-			DF = sys.argv[i+1]
-		if sys.argv[i].lower() == "-path": ### path to feature files
-			path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-save_path": 
-			save_path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-test_gene_list": 
-			TEST = sys.argv[i+1]
-		if sys.argv[i].lower() == "-train_gene_list": 
-			TRAIN = sys.argv[i+1]
-		if sys.argv[i].lower() == "-dataset": 
-			dataset = sys.argv[i+1]
-		if sys.argv[i].lower() == "-clf_estimator": 
-			clf_estimator = sys.argv[i+1]
-		if sys.argv[i].lower() == "-max_depth": 
-			max_depth = int(sys.argv[i+1])
-		if sys.argv[i].lower() == "-max_features": 
-			if sys.argv[i+1] in ['0.1', '0.25', '0.5', '0.75']:
-				max_features = float(sys.argv[i+1])
-			elif sys.argv[i+1] == 'None':
-				max_features = None
-			else:
-				max_features = sys.argv[i+1]
-		if sys.argv[i].lower() == "-n_estimators": 
-			n_estimators = int(sys.argv[i+1])
+	parser = argparse.ArgumentParser(description='This code is for building the AdaBoostClassifier models, where the clf_estimator is the RF model with the best hyperparameters for each dataset. Numbers of genes in pathways are balanced for the training set')
+	# Required
+	req_group = parser.add_argument_group(title='REQUIRED INPUT')
+	req_group.add_argument('-df_short_name', help='feature matrix, for Set B, use the short name, for Set A, use the full name of the expression matrix', required=True)
+	req_group.add_argument('-path', help='path to the feature matrix', required=True)
+	req_group.add_argument('-save_path', help='path to save the outputs', required=True)
+	req_group.add_argument('-test_gene_list', help='Genes_for_testing.txt', required=True)
+	req_group.add_argument('-train_gene_list', help='Genes_for_training.txt', required=True)
+	req_group.add_argument('-dataset', help='setA or setB', required=True)
+	req_group.add_argument('-clf_estimator', help='', required=True)
+	req_group.add_argument('-max_depth', help='', required=True)
+	req_group.add_argument('-max_features', help='', required=True)
+	req_group.add_argument('-n_estimators', help='', required=True)
+
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(0)
+	args = parser.parse_args()	
+
+	DF = args.df_short_name
+	path = args.path
+	save_path = args.save_path
+	TEST = args.test_gene_list
+	TRAIN = args.train_gene_list
+	dataset = args.dataset
+	clf_estimator = args.clf_estimator
+	max_depth = int(args.max_depth)
+	max_features = args.max_features
+	n_estimators = int(args.n_estimators)
+
+	if max_features in ['0.1', '0.25', '0.5', '0.75']:
+		max_features = float(max_features)
+	elif max_features == 'None':
+		max_features = None
 		
 	with open(TEST) as test_file:
 		test = test_file.read().splitlines()

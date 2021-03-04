@@ -1,5 +1,5 @@
 # source /mnt/home/mengfanr/run_local_tensorflow_module_load_gpu_2.2.sh
-import sys, os
+import sys,os,argparse
 import pandas as pd
 import numpy as np
 from imblearn.over_sampling import SMOTE
@@ -7,6 +7,12 @@ import tensorflow as tf
 from tensorflow import keras
 from sklearn.metrics import f1_score
 import joblib
+
+def warn(*args, **kwargs):
+	pass
+import warnings
+warnings.warn = warn
+
 
 def Performance_MC(y, pred, classes):
 	from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
@@ -40,19 +46,27 @@ def Fmeasure(TP,FP,FN):
 
 
 def main():
-	for i in range (1,len(sys.argv),2):
-		if sys.argv[i].lower() == "-df_short_name":
-			DF = sys.argv[i+1]
-		if sys.argv[i].lower() == "-path": ### path to feature files
-			path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-save_path": 
-			save_path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-test_gene_list": 
-			TEST = sys.argv[i+1]
-		if sys.argv[i].lower() == "-train_gene_list": 
-			TRAIN = sys.argv[i+1]
-		if sys.argv[i].lower() == "-dataset":
-			dataset = sys.argv[i+1]
+	parser = argparse.ArgumentParser(description='This code is for building the keras Sequential API based model, where numbers of genes in pathways are balanced for the training set.')
+	# Required
+	req_group = parser.add_argument_group(title='REQUIRED INPUT')
+	req_group.add_argument('-df_short_name', help='feature matrix, for Set B, use the short name, for Set A, use the full name of the expression matrix', required=True)
+	req_group.add_argument('-path', help='path to the feature matrix', required=True)
+	req_group.add_argument('-save_path', help='path to save the outputs', required=True)
+	req_group.add_argument('-test_gene_list', help='Genes_for_testing.txt', required=True)
+	req_group.add_argument('-train_gene_list', help='Genes_for_training.txt', required=True)
+	req_group.add_argument('-dataset', help='setA or setB', required=True)
+
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(0)
+	args = parser.parse_args()	
+
+	DF = args.df_short_name
+	path = args.path
+	save_path = args.save_path
+	TEST = args.test_gene_list
+	TRAIN = args.train_gene_list
+	dataset = args.dataset
 		
 	with open(TEST) as test_file:
 		test = test_file.read().splitlines()

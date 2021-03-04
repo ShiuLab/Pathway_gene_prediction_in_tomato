@@ -1,15 +1,20 @@
-import sys, os
+import sys,os,argparse
 import pandas as pd
 import numpy as np
 from datetime import datetime
 import time
-import ML_function_for_CV as ML
 from sklearn.model_selection import GridSearchCV
 from sklearn.model_selection import RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.model_selection import cross_val_predict
 from imblearn.over_sampling import SMOTE
+
+def warn(*args, **kwargs):
+	pass
+import warnings
+warnings.warn = warn
+
 
 def Performance_MC(y, pred, classes):
 	from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
@@ -50,21 +55,28 @@ def Fmeasure(TP,FP,FN):
 		F1 = 0
 	return(F1)
 
-
 def main():
-	for i in range (1,len(sys.argv),2):
-		if sys.argv[i].lower() == "-df_short_name":
-			DF = sys.argv[i+1]
-		if sys.argv[i].lower() == "-path": ### path to feature files
-			path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-save_path": ### path to feature files
-			save_path = sys.argv[i+1]
-		if sys.argv[i].lower() == "-test_gene_list": ### path to feature files
-			TEST = sys.argv[i+1]
-		if sys.argv[i].lower() == "-train_gene_list": ### path to feature files
-			TRAIN = sys.argv[i+1]
-		if sys.argv[i].lower() == "-dataset": ### path to feature files
-			dataset = sys.argv[i+1]
+	parser = argparse.ArgumentParser(description='This code is for building the RF models, where numbers of genes in pathways are balanced for the training set. ')
+	# Required
+	req_group = parser.add_argument_group(title='REQUIRED INPUT')
+	req_group.add_argument('-df_short_name', help='feature matrix, for Set B, use the short name, for Set A, use the full name of the expression matrix', required=True)
+	req_group.add_argument('-path', help='path to the feature matrix', required=True)
+	req_group.add_argument('-save_path', help='path to save the outputs', required=True)
+	req_group.add_argument('-test_gene_list', help='Genes_for_testing.txt', required=True)
+	req_group.add_argument('-train_gene_list', help='Genes_for_training.txt', required=True)
+	req_group.add_argument('-dataset', help='setA or setB', required=True)
+
+	if len(sys.argv)==1:
+		parser.print_help()
+		sys.exit(0)
+	args = parser.parse_args()	
+
+	DF = args.df_short_name
+	path = args.path
+	save_path = args.save_path
+	TEST = args.test_gene_list
+	TRAIN = args.train_gene_list
+	dataset = args.dataset
 		
 	with open(TEST) as test_file:
 		test = test_file.read().splitlines()
@@ -155,18 +167,14 @@ def main():
 	conf_matrices = pd.DataFrame(columns = np.insert(arr = classes.astype(np.str), obj = 0, values = 'Class'))
 	imp = pd.DataFrame(index = list(df.drop(['Class'], axis=1)))
 	accuracies = []
-	accuracies_training = []
 	accuracies_ho = []
 	f1_array = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 	accuracies_ho = []
-	f1_array_training = np.array([np.insert(arr = classes.astype(np.str), obj = 0, values = 'M')])
 	accuracies_ho = []
 	f1_array_ho = np.array([np.insert(arr = test_classes.astype(np.str), obj = 0, values = 'M')])
 	results = []
-	results_training = []
 	results_ho = []
 	df_all = df.copy()
-	df_proba_training = pd.DataFrame(data=df_training['Class'], index=df_training.index, columns=['Class'])
 	df_proba_test = pd.DataFrame(data=df_test['Class'], index=df_test.index, columns=['Class'])
 	clf = DefineClf_RandomForest(n_estimators,max_depth,max_features)
 	Prediction_testing = pd.DataFrame(y_test)
