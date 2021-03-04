@@ -74,7 +74,7 @@ def Enrichment_clustering(cluster_result,n_clusters):
 
 def main():
 	for i in range (1,len(sys.argv),2):
-		if sys.argv[i].lower() == "-df_short_name":
+		if sys.argv[i].lower() == "-df":
 			DF = sys.argv[i+1]
 		if sys.argv[i].lower() == "-path": ### path to feature files
 			path = sys.argv[i+1]

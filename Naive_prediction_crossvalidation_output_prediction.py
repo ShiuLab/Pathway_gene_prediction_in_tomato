@@ -12,8 +12,8 @@ def Fmeasure(TP,FP,FN):
 		F1 = 0
 	return(F1)
 
-path = sys.argv[1]
-expression = sys.argv[2]
+path = sys.argv[1] # directory where the expression/co-expression matrix are
+expression = sys.argv[2] # the expression/co-expression matrix
 Result = {}
 Gene_prediction = {}  # Gene_prediction[gene1][Median_1] = pathway
 for cv_number in range(1,6):
@@ -145,7 +145,7 @@ for cv_number in range(1,6):
 		Result[pathway]['Max'].append(F1_max)
 		Result[pathway]['Median'].append(F1_median)
 
-out = open('./Result_with_geen_prediction/'+ expression.split('.txt')[0].split('/')[-1] + '_naive_median_max_validation.txt','w')
+out = open('./Result_with_gene_prediction/'+ expression.split('.txt')[0].split('/')[-1] + '_naive_median_max_validation.txt','w')
 out.write('Pathway\tMedian_F1_average\tMedian_F1_std\tMax_F1_average\tMax_F1_std\n')
 for pathway in Result:
 	out.write('%s\t%s\t%s\t%s\t%s\n'%(pathway,np.mean(Result[pathway]['Median']),np.std(Result[pathway]['Median']),np.mean(Result[pathway]['Max']),np.std(Result[pathway]['Max'])))
@@ -161,7 +161,7 @@ for inl in inp:
 
 	
 gene_prediction = pd.DataFrame.from_dict(Gene_prediction, orient='index')  ### make a dataframe from a dictionary
-gene_prediction.to_csv('./Result_with_geen_prediction/'+ expression.split('.txt')[0] + '_gene_predicted.txt', index=True, header=True,sep="\t")
+gene_prediction.to_csv('./Result_with_gene_prediction/'+ expression.split('.txt')[0] + '_gene_predicted.txt', index=True, header=True,sep="\t")
 	
 			
 ################################

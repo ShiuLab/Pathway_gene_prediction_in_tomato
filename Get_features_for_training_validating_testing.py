@@ -1,9 +1,10 @@
 import sys,os
 import pandas as pd
 import numpy as np
-files = sys.argv[1]
-number = sys.argv[2]
-expression = pd.read_csv('/mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Finished/' + files, sep='\t', index_col = 0, header = 0)
+path = sys.argv[1] # the pathway where the co-expression matrix are
+files = sys.argv[2] # the co-expression matrix
+number = sys.argv[3] # the numbers for cross-validation
+expression = pd.read_csv(path + files, sep='\t', index_col = 0, header = 0)
 expression = expression.drop(['Pathway'], axis=1)
 shortname = '_'.join(expression.columns[0].split('_')[0:-2]) + '_'
 expression.columns = expression.columns.str.replace(shortname,"")
