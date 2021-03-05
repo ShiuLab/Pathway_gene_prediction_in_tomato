@@ -8,7 +8,7 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
  - File "Tomato_TPM.txt" contains the original TPM for each sample replicate
  - Files starting with "Results_Fold_changes_", "Results_median_FPKM_" or "TPM_" contain FC, FPKM or TPM values for 41 datasets used in the manuscript.
  
-> ## Expression matrix
+> ## Get expression matrix
 
 > Fold changes
  - Rscript Get_fold_change_values.r
@@ -23,7 +23,7 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 
 > Partial correlation
  - Rscript Corpcor.r expression_matrix 
-## Note that, if the Coexpression_multiclass.py is used, you don't have to calculate the PCC, Spearman's and Mutual information for the gene-to-gene coexpression matrix using the following three scripts
+##### Note that, if the Coexpression_multiclass.py is used, you don't have to calculate the PCC, Spearman's and Mutual information for the gene-to-gene coexpression matrix using the following three scripts
 > Pearson correlation coefficient
  - python  PCC_pandas_20180918.py -file expression_matrix -path path_to_expression_matrix
 
