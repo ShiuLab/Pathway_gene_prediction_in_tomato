@@ -3,7 +3,10 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 
 
 > Expression datasets please see https://zenodo.org/deposit/4581142#
- - Files startswith "Results_" are Set A data
+ - File "Cufflink_matrix_sample_name_20180123.txt" contains the original FPKM for each sample replicate
+ - File "HTseq_matrix_sample_name_20180123.txt" contains the original read counts for each sample replicate
+ - File "Tomato_TPM.txt" contains the original TPM for each sample replicate
+ - Files startswith "Results_" or "TPM" are Set A data
  - Files with "_CV_#_features.txt", where # indicates which cross-validation is (1-5), are Set B data for unsupervised and supervised approaches
  
 > The orignal Set B data for naive approaches, and for the Set B used in unsupervised and supervised approaches, please see XXX
@@ -28,6 +31,23 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 > Get background F1s
  - python Get_background_F1_for_validation_and_test.py
 
+> ## co-expression matrix
+
+> partial correlation
+ - Rscript Corpcor.r expression_matrix
+
+> Pearson correlation coefficient
+ - python  PCC_pandas_20180918.py -file expression_matrix -path path_to_expression_matrix
+
+> Spearman's rank correlation coefficient
+ - python Spearman_pandas_20180918.py -file expression_matrix -path path_to_expression_matrix
+
+> Mutual information
+ - python MI_pandas_20180919.py -file expression_matrix -path path_to_expression_matrix -start where_the_subset_starts -stop where_the_subset_stops
+
+> Mutual Rank
+ - python XXX
+
 > ## naive approaches
  - python Naive_prediction_crossvalidation_output_prediction.py -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Finished/ -expression Multiclass_MR_pcc_FC_stress_complete.txt
 
@@ -43,7 +63,6 @@ Unsupervised approaches including:
 > Example for Set B
  - python Clustering_crossvalidation.py -df_short_name spearman_FPKM_hormone -path ./Features_files/ -save_path ./Final_results_kmean_setB/ -clustering_method kmean -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setB
  
-
 > ## Supervised approaches
 
 > RandomForest
