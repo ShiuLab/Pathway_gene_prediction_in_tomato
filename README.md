@@ -8,7 +8,7 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
  - File "Tomato_TPM.txt" contains the original TPM for each sample replicate
  - Files starting with "Results_Fold_changes_", "Results_median_FPKM_" or "TPM_" contain FC, FPKM or TPM values for 41 datasets used in the manuscript.
  
-> ## Get expression matrix
+## Get expression matrix
 
 > Fold changes
  - Rscript Get_fold_change_values.r
@@ -19,7 +19,7 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 > Median TPM among replicates
  - Rscript Get_TPM.r
 
-> ## calculate the gene-to-gene co-expression matrix
+## calculate the gene-to-gene co-expression matrix
 
 > Partial correlation
  - Rscript Corpcor.r expression_matrix 
@@ -33,13 +33,13 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 > Mutual information
  - python MI_pandas_20180919.py -file expression_matrix -path path_to_expression_matrix -start where_the_subset_starts -stop where_the_subset_stops
 
-> ## calculate both the gene-to-gene and gene-to-pathway (median or max) co-expression matrix
+## calculate both the gene-to-gene and gene-to-pathway (median or max) co-expression matrix
  - python Coexpression_multiclass.py -pathway_anotation Sly_pathway_annotation_20190117_with_expression_5_members_nonoverlapping.txt -exp Results_median_FPKM_for_stress_Sly_20180125.txt -method pcc
 
-> ## calculate the gene-to-gene and gene-to-pathway (median or max) mutual rank of expression similarity
+## calculate the gene-to-gene and gene-to-pathway (median or max) mutual rank of expression similarity
 - python Get_MR.py -pathway_anotation Sly_pathway_annotation_20190117_with_expression_5_members_nonoverlapping.txt -exp Results_median_FPKM_for_2017_TIBA.txt -method pcc
 
-> ## data preprocessing before model building
+## data preprocessing before model building
 > split of genes to test, training and validation (5-fold cross-validation)
  - python Split_data_five_CV.py
 
@@ -49,37 +49,37 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 > Get background F1s
  - python Get_background_F1_for_validation_and_test.py
 
-> ## naive approaches
+## naive approaches
  - python Naive_prediction_crossvalidation_output_prediction.py -path ./ -expression Multiclass_MR_pcc_FC_stress.txt
 
-> ## Unsupervised approaches
+## Unsupervised approaches
 Unsupervised approaches including: kmean (KMeans), affinity (AffinityPropagation), birch (Birch), meanshift (MeanShift)
 > Example for Set A
- - python Clustering_crossvalidation.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Expression_for_nonoverlapping_genes/ -save_path ./Final_results_kmean_setA/ -clustering_method kmean -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
+ - python Clustering_crossvalidation.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path ./ -save_path ./Final_results_kmean_setA/ -clustering_method kmean -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
 
 > Example for Set B
  - python Clustering_crossvalidation.py -df_short_name spearman_FPKM_hormone -path ./Features_files/ -save_path ./Final_results_kmean_setB/ -clustering_method kmean -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setB
  
-> ## Supervised approaches
+## Supervised approaches
 
 > RandomForest
- - python RF_crossvalidation.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Expression_for_nonoverlapping_genes/ -save_path ./Final_results_RF_setA/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
+ - python RF_crossvalidation.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path ./ -save_path ./Final_results_RF_setA/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
 
 > RandomForest, balance numbers of genes for each pathway for training set
- - python RF_crossvalidation_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Expression_for_nonoverlapping_genes/ -save_path ./Final_results_RF_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
+ - python RF_crossvalidation_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path ./ -save_path ./Final_results_RF_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
 
 > SVC, balance numbers of genes for each pathway for training set
- - python SVC_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Expression_for_nonoverlapping_genes/ -save_path ./Final_results_SVC_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
+ - python SVC_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path ./ -save_path ./Final_results_SVC_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
 
 > KNeighbors, balance numbers of genes for each pathway for training set
- - python KNeighbors_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Expression_for_nonoverlapping_genes/ -save_path ./Final_results_SVC_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
+ - python KNeighbors_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path ./ -save_path ./Final_results_SVC_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
 
 > KNeighbors, balance numbers of genes for each pathway for training set
- - python KNeighbors_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Expression_for_nonoverlapping_genes/ -save_path ./Final_results_KNN_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
+ - python KNeighbors_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path ./ -save_path ./Final_results_KNN_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
 
 > DNN, balance numbers of genes for each pathway for training set
- - python DNN_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Expression_for_nonoverlapping_genes/ -save_path ./Final_results_DNN_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
+ - python DNN_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path ./ -save_path ./Final_results_DNN_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
 
 > neural_network.MLPClassifier, balance numbers of genes for each pathway for training set
- - python neural_network.MLPClassifier_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path /mnt/home/peipeiw/Documents/Pathway_prediction/20180827_all_EC_pathway/Expression_for_nonoverlapping_genes/ -save_path ./Final_results_MLP_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
+ - python neural_network.MLPClassifier_SMOTE.py -df_short_name Results_median_FPKM_for_stress_Sly_20180125.txt -path ./ -save_path ./Final_results_MLP_setA_SMOTE/ -test_gene_list Genes_for_testing.txt -train_gene_list Genes_for_training.txt -dataset setA
 
