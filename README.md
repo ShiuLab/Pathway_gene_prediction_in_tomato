@@ -19,7 +19,7 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 > Median TPM among replicates
  - Rscript Get_TPM.r
 
-## calculate the gene-to-gene co-expression matrix
+## Calculate the gene-to-gene co-expression matrix
 
 > Partial correlation
  - Rscript Corpcor.r expression_matrix 
@@ -33,13 +33,13 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 > Mutual information
  - python MI_pandas_20180919.py -file expression_matrix -path path_to_expression_matrix -start where_the_subset_starts -stop where_the_subset_stops
 
-## calculate both the gene-to-gene and gene-to-pathway (median or max) co-expression matrix
+## Calculate both the gene-to-gene and gene-to-pathway (median or max) co-expression matrix
  - python Coexpression_multiclass.py -pathway_anotation Sly_pathway_annotation_20190117_with_expression_5_members_nonoverlapping.txt -exp Results_median_FPKM_for_stress_Sly_20180125.txt -method pcc
 
-## calculate the gene-to-gene and gene-to-pathway (median or max) mutual rank of expression similarity
+## Calculate the gene-to-gene and gene-to-pathway (median or max) mutual rank of expression similarity
 - python Get_MR.py -pathway_anotation Sly_pathway_annotation_20190117_with_expression_5_members_nonoverlapping.txt -exp Results_median_FPKM_for_2017_TIBA.txt -method pcc
 
-## data preprocessing before model building
+## Data preprocessing before model building
 > split of genes to test, training and validation (5-fold cross-validation)
  - python Split_data_five_CV.py
 
@@ -49,7 +49,7 @@ Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C,
 > Get background F1s
  - python Get_background_F1_for_validation_and_test.py
 
-## naive approaches
+## Naive approaches
  - python Naive_prediction_crossvalidation_output_prediction.py -path ./ -expression Multiclass_MR_pcc_FC_stress.txt
 
 ## Unsupervised approaches
