@@ -24,6 +24,7 @@ def main():
 	args = parser.parse_args()	
 
 	file = args.file
+	path = args.path
 	SAVE = 'Spearman_' + file
 
 	df = pd.read_csv(path+file, sep='\t', index_col = 0, header = 0)  

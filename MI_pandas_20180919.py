@@ -33,6 +33,7 @@ def main():
 	args = parser.parse_args()	
 
 	file = args.file
+	path = args.path
 	start = int(args.start)
 	stop = int(args.stop)
 
