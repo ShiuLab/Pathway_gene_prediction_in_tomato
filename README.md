@@ -1,5 +1,5 @@
 # Pathway_gene_prediction_in_tomato
-Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C, __Shiu SH__. 	Optimizing the use of gene expression data to predict plant metabolic pathway memberships. *[bioRxiv](https://doi.org/10.1101/2020.07.15.204222)* 
+Scripts for our paper: __Wang P, Moore BM__, Ugyun S, __Lehti-Shiu M__, Barry C, __Shiu SH__. 	Optimizing the use of gene expression data to predict plant metabolic pathway memberships. *[New Phytologist](https://nph.onlinelibrary.wiley.com/doi/10.1111/nph.17355)*
 
 
 > Expression datasets please see https://zenodo.org/record/4585635#.YEKEjMhvrrM
